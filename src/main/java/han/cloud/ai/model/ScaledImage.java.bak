@@ -1,0 +1,28 @@
+package han.cloud.ai.model;
+
+import org.bytedeco.javacpp.opencv_core.IplImage;
+
+/**
+ * 
+ * @author Jiayun Han
+ *
+ */
+public class ScaledImage {
+
+	private final IplImage image;
+	private final double scale;
+
+	public ScaledImage(IplImage image, double scale) {
+		super();
+		this.image = image;
+		this.scale = scale;
+	}
+
+	public IplImage getImage() {
+		return image;
+	}
+
+	public double getScale() {
+		return scale;
+	}
+}
