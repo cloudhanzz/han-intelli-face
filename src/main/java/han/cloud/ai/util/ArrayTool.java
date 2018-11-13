@@ -26,7 +26,7 @@ public final class ArrayTool {
 	public static void divideByMax(double[] array) {
 		Arrays.stream(array).max().ifPresent(max -> {
 			for (int i = 0; i < array.length; i++) {
-				array[i] = array[i] / max;
+				array[i] /= max;
 			}
 		});
 	}
@@ -73,7 +73,7 @@ public final class ArrayTool {
 
 		for (int row = 0; row < rows; row++) {
 			for (int col = 0; col < cols; col++) {
-				arrays[row][col] = arrays[row][col] - means[col];
+				arrays[row][col] -= means[col];
 			}
 		}
 	}

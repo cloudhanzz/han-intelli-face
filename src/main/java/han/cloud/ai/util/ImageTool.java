@@ -27,8 +27,6 @@ import org.bytedeco.javacv.OpenCVFrameConverter;
  */
 public class ImageTool {
 
-	// private static final int STANDARD_WIDTH = 1280;
-
 	private static final OpenCVFrameConverter.ToIplImage CONVERTER = new OpenCVFrameConverter.ToIplImage();
 
 	public static Frame toJavaCvFrame(IplImage iplImage) {
@@ -84,17 +82,17 @@ public class ImageTool {
 
 			double maxVal = Arrays.stream(pixels).max().getAsDouble();
 			double minVal = Arrays.stream(pixels).min().getAsDouble();
-			double diff = maxVal - minVal;
+			double range = maxVal - minVal;
 
 			int height = pixels.length / width;
 			image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
 
 			WritableRaster raster = image.getData().createCompatibleWritableRaster();
 
-			double ratio;
+			double normalized;
 			for (int i = 0; i < pixels.length; i++) {
-				ratio = (pixels[i] - minVal) / diff;
-				pixels[i] = ratio * brightness;
+				normalized = (pixels[i] - minVal) / range;
+				pixels[i] = normalized * brightness;
 			}
 
 			raster.setPixels(0, 0, width, height, pixels);
@@ -111,7 +109,7 @@ public class ImageTool {
 	}
 
 	/*
-	 * resize to at least a standard size, then convert to grayscal
+	 * resize to at least a standard size, then convert to gray scale
 	 */
 	public static BufferedImage grayAndResizeTo(BufferedImage image, int desiredWidth, int desiredHeight) {
 

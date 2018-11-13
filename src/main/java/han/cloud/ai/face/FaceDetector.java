@@ -100,7 +100,10 @@ public final class FaceDetector {
 	 *         an empty list if no face is found
 	 */
 	public List<BufferedImage> extractFaces(BufferedImage image, int max) {
-		return findFaces(image, max).stream().map(rect -> ImageTool.crop(image, rect)).collect(Collectors.toList());
+		return findFaces(image, max)//
+				.stream()//
+				.map(rect -> ImageTool.crop(image, rect))//
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -188,15 +191,8 @@ public final class FaceDetector {
 
 		LOGGER.info("Found {} faces", rectangles.size());
 
-		IplImage dest = ImageTool.toIplImage(source);
-
-		rectangles.forEach(rectangle -> {
-			cvRectangle(dest, //
-					cvPoint(rectangle.x, rectangle.y), //
-					cvPoint(rectangle.x + rectangle.width, rectangle.y + rectangle.height), //
-					CvScalar.GREEN, 2, CV_AA, //
-					0);
-		});
+		IplImage dest = ImageTool.toIplImage(source);		
+		rectangles.forEach(rect -> markFace(dest, rect));
 
 		return dest;
 	}
@@ -204,14 +200,20 @@ public final class FaceDetector {
 	public static IplImage markFace(BufferedImage source, Rectangle rect) {
 
 		IplImage dest = ImageTool.toIplImage(source);
+		markFace(dest, rect);
 
-		cvRectangle(dest, //
+		return dest;
+	}
+	
+	public static IplImage markFace(IplImage source, Rectangle rect) {
+
+		cvRectangle(source, //
 				cvPoint(rect.x, rect.y), //
 				cvPoint(rect.x + rect.width, rect.y + rect.height), //
 				CvScalar.GREEN, 2, CV_AA, //
 				0);
 
-		return dest;
+		return source;
 	}
 
 	/**
