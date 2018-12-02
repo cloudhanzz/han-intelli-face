@@ -9,6 +9,7 @@ import java.util.function.BiFunction;
 
 import javax.imageio.ImageIO;
 
+import han.cloud.ai.face.ifs.FaceRecognizer;
 import han.cloud.ai.model.MatchInfo;
 import han.cloud.ai.util.ArrayTool;
 import han.cloud.ai.util.FaceConstants;
@@ -29,7 +30,7 @@ import cern.colt.matrix.linalg.EigenvalueDecomposition;
  * @author Jiayun Han
  *
  */
-public class FaceRecognizer {
+public class EigenFaceRecognizerComplete implements FaceRecognizer {
 
 	private static final class Eigen {
 
@@ -56,7 +57,7 @@ public class FaceRecognizer {
 	 * @param faces
 	 *            Assuming they are gray and in standard size
 	 */
-	public FaceRecognizer(List<BufferedImage> faces) {
+	public EigenFaceRecognizerComplete(List<BufferedImage> faces) {
 
 		this.max = faces.size();
 		this.subMax = max - 1;
@@ -232,5 +233,11 @@ public class FaceRecognizer {
 			BufferedImage image = ImageTool.createImageFromPixels(pixels, FaceConstants.width);
 			ImageIO.write(image, "png", new File(filename));
 		}
+	}
+
+	@Override
+	public MatchInfo recognize(List<BufferedImage> faces, BufferedImage face) {
+		
+		return null;
 	}
 }
