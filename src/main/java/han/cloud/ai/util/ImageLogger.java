@@ -29,21 +29,21 @@ public class ImageLogger {
 		}
 	}
 
-	public void log(BufferedImage face) {
-		log(face, null);
+	public void log(BufferedImage image) {
+		log(image, null);
 	}
 
-	public void log(BufferedImage face, String suffix) {
+	public void log(BufferedImage image, String suffix) {
 		long ts = System.currentTimeMillis();
 		String fileName = String.format(pathFormat, ts);
 		if (suffix != null) {
 			String a = "." + formatName;
-			String b = "." + suffix + "." + formatName;
+			String b = "." + suffix + a;
 			fileName = fileName.replace(a, b);
 		}
 		File file = new File(fileName);
 		try {
-			ImageIO.write(face, formatName, file);
+			ImageIO.write(image, formatName, file);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

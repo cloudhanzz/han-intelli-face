@@ -1,7 +1,5 @@
 package han.cloud.ai.face;
 
-import static java.util.stream.Collectors.toList;
-
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -52,55 +50,20 @@ public class FaceRecognizer {
 
 	private final DoubleMatrix2D eigenspace;
 	private final DoubleMatrix2D refWeights;
-	private final List<String> faceImages;
 
 	/**
 	 * 
 	 * @param faces
 	 *            Assuming they are gray and in standard size
 	 */
-	public FaceRecognizer(List<String> faceImages) {
+	public FaceRecognizer(List<BufferedImage> faces) {
 
-		this.faceImages = faceImages;
-
-		this.max = faceImages.size();
-		this.subMax = max - 1;
-
-		List<BufferedImage> faces = faceImages.stream().map(f -> {
-			try {
-				return ImageIO.read(new File(f));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			return null;
-		}).collect(toList());
-
-		double[][] refData = faces //
-				.stream() //
-				.map(this::normalize) //
-				.toArray(double[][]::new);
-
-		this.pixelMeans = ArrayTool.findCrossMeans(refData);
-		ArrayTool.minusCrossMeans(refData, pixelMeans);
-
-		DenseDoubleMatrix2D refFaces = new DenseDoubleMatrix2D(refData);
-		KeyValuePair<DoubleMatrix2D, double[]> kv = buildEigenspaceAndEigenvalues(refFaces);
-
-		this.eigenspace = kv.getKey();
-		this.eigenvalues = kv.getValue();
-
-		this.refWeights = refFaces.zMult(eigenspace.viewDice(), null);
-	}
-
-	public FaceRecognizer(List<String> faceImages, List<BufferedImage> faces) {
-
-		this.faceImages = faceImages;
 		this.max = faces.size();
 		this.subMax = max - 1;
 
 		double[][] refData = faces //
 				.stream() //
-				.map(this::normalize) //
+				.map(this::divideByMaxPixel) //
 				.toArray(double[][]::new);
 
 		this.pixelMeans = ArrayTool.findCrossMeans(refData);
@@ -140,13 +103,8 @@ public class FaceRecognizer {
 		}
 
 		double distance = Math.sqrt(minSum);
-
-		String fileName = null;
-		if (faceImages != null) {
-			fileName = faceImages.get(index);
-		}
 		MatchInfo result = new MatchInfo(distance, index);
-		result.setFileName(fileName);
+
 		return result;
 	}
 
@@ -183,7 +141,7 @@ public class FaceRecognizer {
 
 	private DoubleMatrix2D projectFace(BufferedImage face) {
 
-		double[] pixels = normalize(face);
+		double[] pixels = divideByMaxPixel(face);
 		ArrayTool.minusCrossMeans(pixels, pixelMeans);
 
 		double[][] faceData = { pixels };
@@ -192,7 +150,7 @@ public class FaceRecognizer {
 		return faceMatrix.zMult(eigenspace.viewDice(), null);
 	}
 
-	private double[] normalize(BufferedImage image) {
+	private double[] divideByMaxPixel(BufferedImage image) {
 		double[] pixels = ImageTool.toPixels(image, FaceConstants.width, FaceConstants.height);
 		ArrayTool.divideByMax(pixels);
 		return pixels;
@@ -209,36 +167,6 @@ public class FaceRecognizer {
 
 		DoubleMatrix2D space = buildEigenspace(eigenvectors, refFaces);
 		return new KeyValuePair<DoubleMatrix2D, double[]>(space, eigenvalues);
-	}
-
-	private DoubleMatrix2D buildEigenspace(DoubleMatrix2D eigenvectors, DoubleMatrix2D refFaces) {
-
-		DoubleMatrix2D eigenfaces = eigenvectors.viewDice().zMult(refFaces, null);
-
-		for (int i = 0; i < subMax; i++) {
-			double[] eigenface = eigenfaces.viewRow(i).toArray();
-			ArrayTool.divideByNorm(eigenface);
-			eigenfaces.viewRow(i).assign(eigenface);
-		}
-
-		return eigenfaces.viewPart(0, 0, subMax, FaceConstants.columns);
-	}
-
-	private KeyValuePair<DoubleMatrix2D, double[]> getEigenvectorsAndEigenvalues(List<Eigen> eigens) {
-
-		DoubleMatrix2D vectors = new DenseDoubleMatrix2D(max, max);
-		double[] values = new double[subMax];
-
-		for (int i = 0; i < max; i++) {
-			Eigen eigen = eigens.get(i);
-			vectors.viewColumn(i).assign(eigen.vector);
-
-			if (i < subMax) {
-				values[i] = eigen.value;
-			}
-		}
-
-		return new KeyValuePair<DoubleMatrix2D, double[]>(vectors, values);
 	}
 
 	private List<Eigen> buildAndSortEigens(DoubleMatrix2D refFaces) {
@@ -260,6 +188,36 @@ public class FaceRecognizer {
 
 		eigens.sort((a, b) -> Double.compare(b.value, a.value)); // descending
 		return eigens;
+	}
+
+	private KeyValuePair<DoubleMatrix2D, double[]> getEigenvectorsAndEigenvalues(List<Eigen> eigens) {
+
+		DoubleMatrix2D vectors = new DenseDoubleMatrix2D(max, max);
+		double[] values = new double[subMax];
+
+		for (int i = 0; i < max; i++) {
+			Eigen eigen = eigens.get(i);
+			vectors.viewColumn(i).assign(eigen.vector);
+
+			if (i < subMax) {
+				values[i] = eigen.value;
+			}
+		}
+
+		return new KeyValuePair<DoubleMatrix2D, double[]>(vectors, values);
+	}
+
+	private DoubleMatrix2D buildEigenspace(DoubleMatrix2D eigenvectors, DoubleMatrix2D refFaces) {
+
+		DoubleMatrix2D eigenfaces = eigenvectors.viewDice().zMult(refFaces, null);
+
+		for (int i = 0; i < subMax; i++) {
+			double[] eigenface = eigenfaces.viewRow(i).toArray();
+			ArrayTool.divideByNorm(eigenface);
+			eigenfaces.viewRow(i).assign(eigenface);
+		}
+
+		return eigenfaces.viewPart(0, 0, subMax, FaceConstants.columns);
 	}
 
 	private static void saveMatrixAsImages(DoubleMatrix2D imageMatrix) throws IOException {

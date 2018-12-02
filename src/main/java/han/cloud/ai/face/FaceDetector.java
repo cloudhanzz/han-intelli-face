@@ -52,7 +52,7 @@ public final class FaceDetector {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FaceDetector.class);
 	private static final String CASCADE_FILE_NAME = "haarcascade_frontalface_alt.xml";
 
-	private static volatile FaceDetector instance;
+	private static volatile FaceDetector INSTANCE;
 	private CvHaarClassifierCascade cascade;
 
 	private FaceDetector() {
@@ -64,17 +64,17 @@ public final class FaceDetector {
 			String cascadePath = IoTool.writeInputstream(sourceStream, CASCADE_FILE_NAME).getAbsolutePath();
 			cascade = new CvHaarClassifierCascade(cvLoad(cascadePath));
 
-			LOGGER.info("Created classifier with address = {}", cascade.address());
-			instance = this;
+			LOGGER.info("Created face detector: address = {}", cascade.address());
+			INSTANCE = this;
 
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			LOGGER.error("Failed to create face detector", e);
 		}
 	}
 
 	/**
 	 * Returns the {@link java.awt.Rectangle}s of the faces contained in
-	 * <i>image</i>
+	 * {@code image}.
 	 * 
 	 * @param image
 	 *            The image whose contained faces to be found
@@ -88,32 +88,32 @@ public final class FaceDetector {
 	}
 
 	/**
-	 * Extracts and returns the specified maximal number of faces from the given
-	 * <i>image</i>
+	 * Returns the specified maximal number of faces contained in the given
+	 * {@code image}.
 	 * 
 	 * @param image
-	 *            The image whose contained faces to be extracted
+	 *            The image whose contained faces to be returned
 	 * @param max
 	 *            The maximal number of faces to be extracted; -1 to extract all
 	 *            faces
-	 * @return The specified maximal number of faces from the given <i>image</i> or
-	 *         an empty list if no face is found
+	 * @return The specified maximal number of faces from {@code image} or an empty
+	 *         list if no face is found
 	 */
 	public List<BufferedImage> extractFaces(BufferedImage image, int max) {
 		return findFaces(image, max)//
 				.stream()//
-				.map(rect -> ImageTool.crop(image, rect))//
+				.map(rect -> ImageTool.extract(image, rect))//
 				.collect(Collectors.toList());
 	}
 
 	/**
 	 * Returns the {@link java.awt.Rectangle} of the biggest face contained in
-	 * <i>image</i> as an {@link java.util.Optional}
+	 * {@code image} as an {@link java.util.Optional}
 	 * 
 	 * @param image
 	 *            The image whose biggest face to be found
 	 * @return The {@link java.awt.Rectangle} of the biggest face contained in
-	 *         <i>image</i> as an {@link java.util.Optional}
+	 *         {@code image} as an {@link java.util.Optional}
 	 */
 	public Optional<Rectangle> findBiggestFace(BufferedImage image) {
 
@@ -121,23 +121,32 @@ public final class FaceDetector {
 		return rects.isEmpty() ? Optional.empty() : Optional.of(rects.get(0));
 	}
 
+	/**
+	 * Returns the the biggest face contained in {@code image} as an
+	 * {@link java.util.Optional}
+	 * 
+	 * @param image
+	 *            The image whose biggest face to be found
+	 * @return The biggest face contained in {@code image} as an
+	 *         {@link java.util.Optional}
+	 */
 	public Optional<BufferedImage> extractBiggestFace(BufferedImage image) {
-		return findBiggestFace(image).map(rect -> ImageTool.crop(image, rect));
+		return findBiggestFace(image).map(rect -> ImageTool.extract(image, rect));
 	}
 
 	private List<Rectangle> findFacesHelper(BufferedImage image, int maxFaces, int minNeighbors, int flags) {
 
-		IplImage iplImage = ImageTool.toIplImage(image);
-		IplImage gray = ImageTool.copyGray(iplImage);
+		IplImage intel = ImageTool.toIntelImage(image);
+		IplImage grayIntel = ImageTool.copyGray(intel);
 
 		CvMemStorage storage = CvMemStorage.create();
-		CvSeq faces = cvHaarDetectObjects(gray, cascade, storage, 1.1, minNeighbors, flags);
+		CvSeq faces = cvHaarDetectObjects(grayIntel, cascade, storage, 1.1, minNeighbors, flags);
 		cvClearMemStorage(storage);
 
 		int foundFaces = faces.total();
 
 		if (maxFaces == -1) {
-			maxFaces = Integer.MAX_VALUE;
+			maxFaces = foundFaces;
 		}
 
 		List<Rectangle> rectangles = new ArrayList<>();
@@ -150,9 +159,8 @@ public final class FaceDetector {
 				cvRects.add(new CvRect(cvGetSeqElem(faces, i)));
 			}
 
-			rectangles = cvRects.stream() //
-					// .sorted((a, b) -> Integer.compare(b.width() * b.height(), a.width() *
-					// a.height()))//
+			rectangles = cvRects.stream() // sort in descending order
+					.sorted((a, b) -> Integer.compare(b.width() * b.height(), a.width() * a.height()))//
 					.limit(maxFaces) //
 					.map(cv -> toRectangle(cv, 1)) //
 					.collect(toList());
@@ -191,51 +199,53 @@ public final class FaceDetector {
 
 		LOGGER.info("Found {} faces", rectangles.size());
 
-		IplImage dest = ImageTool.toIplImage(source);		
-		rectangles.forEach(rect -> markFace(dest, rect));
+		IplImage intel = ImageTool.toIntelImage(source);
+		rectangles.forEach(rect -> markFace(intel, rect));
 
-		return dest;
+		return intel;
 	}
 
 	public static IplImage markFace(BufferedImage source, Rectangle rect) {
 
-		IplImage dest = ImageTool.toIplImage(source);
-		markFace(dest, rect);
+		IplImage intel = ImageTool.toIntelImage(source);
+		markFace(intel, rect);
 
-		return dest;
+		return intel;
 	}
-	
-	public static IplImage markFace(IplImage source, Rectangle rect) {
 
-		cvRectangle(source, //
+	public static IplImage markFace(IplImage intel, Rectangle rect) {
+
+		cvRectangle(intel, //
 				cvPoint(rect.x, rect.y), //
 				cvPoint(rect.x + rect.width, rect.y + rect.height), //
-				CvScalar.GREEN, 2, CV_AA, //
+				CvScalar.GREEN, //
+				2, //
+				CV_AA, //
 				0);
 
-		return source;
+		return intel;
 	}
 
 	/**
 	 * Returns the only instance of this class
 	 * <p>
 	 * Given that instantiation of this class is expensive, this method ensures that
-	 * it is instantiated only once, regardless thread.
+	 * it is instantiated only once, even in multiple threads.
 	 * 
 	 * @return The singleton instance of this class
 	 */
 	public static FaceDetector instance() {
 
-		FaceDetector result = instance;
-		if (result == null) {
+		FaceDetector detector = INSTANCE;
+		if (detector == null) {
 			synchronized (LOCK) {
-				result = instance;
-				if (result == null) {
-					result = new FaceDetector();
+				detector = INSTANCE;
+				if (detector == null) {
+					detector = new FaceDetector();
 				}
 			}
 		}
 
-		return result;
+		return detector;
 	}
 }

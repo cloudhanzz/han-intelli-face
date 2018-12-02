@@ -8,7 +8,7 @@ package han.cloud.ai.model;
  */
 public class MatchInfo {
 
-	private String fileName;
+	//private String fileName;
 	private double distance;
 	private int index = -1; // not found
 
@@ -17,18 +17,18 @@ public class MatchInfo {
 		this.index = index;
 	}
 
-	public MatchInfo(String fileName, double distance) {
-		this.fileName = fileName;
-		this.distance = distance;
-	}
-
-	public String getFileName() {
-		return fileName;
-	}
-
-	public void setFileName(String fileName) {
-		this.fileName = fileName;
-	}
+//	public MatchInfo(String fileName, double distance) {
+//		this.fileName = fileName;
+//		this.distance = distance;
+//	}
+//
+//	public String getFileName() {
+//		return fileName;
+//	}
+//
+//	public void setFileName(String fileName) {
+//		this.fileName = fileName;
+//	}
 
 	public double getDistance() {
 		return distance;
@@ -46,18 +46,19 @@ public class MatchInfo {
 		this.index = index;
 	}
 
-	public String getPersonName() {
-		int slashPos = fileName.lastIndexOf('\\');
-		int extPos = fileName.lastIndexOf(".png");
-		String name = (slashPos == -1) ? fileName.substring(0, extPos) : fileName.substring(slashPos + 1, extPos);
-
-		name = name.replaceAll("[-_0-9]*$", ""); // remove trailing numbers, etc
-		return name;
-	}
+//	public String getPersonName() {
+//		int slashPos = fileName.lastIndexOf('\\');
+//		int extPos = fileName.lastIndexOf(".png");
+//		String name = (slashPos == -1) ? fileName.substring(0, extPos) : fileName.substring(slashPos + 1, extPos);
+//
+//		name = name.replaceAll("[-_0-9]*$", ""); // remove trailing numbers, etc
+//		return name;
+//	}
 
 	@Override
 	public String toString() {
-		return "MatchResult [matchFnm=" + fileName + ", matchDist=" + distance + ", index=" + index + "]";
+		//return "MatchResult [matchFnm=" + fileName + ", matchDist=" + distance + ", index=" + index + "]";
+		return "MatchResult [matchDist=" + distance + ", index=" + index + "]";
 	}
 
 }

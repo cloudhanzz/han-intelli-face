@@ -29,32 +29,32 @@ public class ImageTool {
 
 	private static final OpenCVFrameConverter.ToIplImage CONVERTER = new OpenCVFrameConverter.ToIplImage();
 
-	public static Frame toJavaCvFrame(IplImage iplImage) {
-		return CONVERTER.convert(iplImage);
+	public static Frame toJavaCvFrame(IplImage intelImage) {
+		return CONVERTER.convert(intelImage);
 	}
 
 	public static IplImage toIplImage(Frame frame) {
 		return CONVERTER.convert(frame);
 	}
 
-	public static IplImage toIplImage(BufferedImage bufferedImage) {
+	public static IplImage toIntelImage(BufferedImage bufferedImage) {
 		return Java2DFrameUtils.toIplImage(bufferedImage);
 	}
 
-	public static BufferedImage toBufferedImage(IplImage iplImage) {
-		return Java2DFrameUtils.toBufferedImage(iplImage);
+	public static BufferedImage toBufferedImage(IplImage intelImage) {
+		return Java2DFrameUtils.toBufferedImage(intelImage);
 	}
 
-	public static IplImage copyGray(IplImage iplImage) {
-		IplImage grayIplImage = cvCreateImage(iplImage.cvSize(), IPL_DEPTH_8U, 1);
-		cvCvtColor(iplImage, grayIplImage, CV_BGR2GRAY);
-		return grayIplImage;
+	public static IplImage copyGray(IplImage intelImage) {
+		IplImage gray = cvCreateImage(intelImage.cvSize(), IPL_DEPTH_8U, 1);
+		cvCvtColor(intelImage, gray, CV_BGR2GRAY);
+		return gray;
 	}
 
-	public static void showImage(IplImage iplImage, CanvasFrame canvas, int action) {
+	public static void showImage(IplImage intelImage, CanvasFrame canvas, int action) {
 
 		canvas.setDefaultCloseOperation(action);
-		Frame frame = toJavaCvFrame(iplImage);
+		Frame frame = toJavaCvFrame(intelImage);
 		canvas.showImage(frame);
 
 		try {
@@ -64,13 +64,28 @@ public class ImageTool {
 		}
 	}
 
-	public static void showImage(IplImage iplImage, String title, int action) {
-		showImage(iplImage, new CanvasFrame(title), action);
+	public static void showImage(IplImage intelImage, String title, int action) {
+		showImage(intelImage, new CanvasFrame(title), action);
 	}
 
+	/**
+	 * Returns a double array containing all sample pixels of {@code image}.
+	 * 
+	 * @param image
+	 *            The image whose sample pixels to be returned
+	 * @param width
+	 *            The width of the image
+	 * @param height
+	 *            The height of the image
+	 * @return A double array containing all sample pixels of {@code image}
+	 * 
+	 * @throws ArrayIndexOutOfBoundsException
+	 *             if the coordinates are not in bounds, or if
+	 *             {@code width * height} is too small to hold the output.
+	 */
 	public static double[] toPixels(BufferedImage image, int width, int height) {
-		int columns = width * height;
-		return image.getData().getPixels(0, 0, width, height, new double[columns]);
+		int size = width * height;
+		return image.getData().getPixels(0, 0, width, height, new double[size]);
 	}
 
 	public static BufferedImage createImageFromPixels(double[] pixels, int width) {
@@ -104,8 +119,12 @@ public class ImageTool {
 		return image;
 	}
 
-	public static BufferedImage crop(BufferedImage image, Rectangle rectangel) {
+	public static BufferedImage extract(BufferedImage image, Rectangle rectangel) {
 		return image.getSubimage(rectangel.x, rectangel.y, rectangel.width, rectangel.height);
+	}
+
+	public static BufferedImage grayAndResizeToFace(BufferedImage image) {
+		return grayAndResizeTo(image, FaceConstants.width, FaceConstants.height);
 	}
 
 	/*
@@ -134,25 +153,21 @@ public class ImageTool {
 	}
 
 	/*
-	 * clip image to FACE_WIDTH*FACE_HEIGHT size. I assume the input image is face
-	 * size or bigger
+	 * Shrink image to FACE_WIDTH*FACE_HEIGHT size, assuming image is face size or
+	 * bigger
 	 */
 	private static BufferedImage clipToFace(BufferedImage image, int desiredWidth, int desiredHeight) {
 
 		int xOffset = (image.getWidth() - desiredWidth) / 2;
 		int yOffset = (image.getHeight() - desiredHeight) / 2;
 
-		BufferedImage faceIm = null;
+		BufferedImage face = null;
 
 		try {
-			faceIm = image.getSubimage(xOffset, yOffset, desiredWidth, desiredHeight);
+			face = image.getSubimage(xOffset, yOffset, desiredWidth, desiredHeight);
 		} catch (RasterFormatException e) {
 		}
 
-		return faceIm;
-	}
-
-	public static BufferedImage grayAndResizeToFace(BufferedImage image) {
-		return grayAndResizeTo(image, FaceConstants.width, FaceConstants.height);
+		return face;
 	}
 }
