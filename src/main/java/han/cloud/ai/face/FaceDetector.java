@@ -14,7 +14,6 @@ import static org.bytedeco.javacpp.opencv_objdetect.CV_HAAR_FIND_BIGGEST_OBJECT;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import han.cloud.ai.util.ImageTool;
-import han.cloud.ai.util.IoTool;
 
 /**
  * <p>
@@ -50,7 +48,6 @@ public final class FaceDetector {
 
 	private static final Object LOCK = new Object();
 	private static final Logger LOGGER = LoggerFactory.getLogger(FaceDetector.class);
-	private static final String CASCADE_FILE_NAME = "haarcascade_frontalface_alt.xml";
 
 	private static volatile FaceDetector INSTANCE;
 	private CvHaarClassifierCascade cascade;
@@ -58,10 +55,12 @@ public final class FaceDetector {
 	private FaceDetector() {
 
 		Loader.load(opencv_objdetect.class);
+		
+		String pyHome = System.getenv("PYTHON_HOME");
+		String cascadePath = pyHome + "face_recognition/haarcascade_frontalface_alt.xml";
 
-		try (InputStream sourceStream = IoTool.toInputStream(CASCADE_FILE_NAME)) {
+		try {
 
-			String cascadePath = IoTool.writeInputstream(sourceStream, CASCADE_FILE_NAME).getAbsolutePath();
 			cascade = new CvHaarClassifierCascade(cvLoad(cascadePath));
 
 			LOGGER.info("Created face detector: address = {}", cascade.address());
