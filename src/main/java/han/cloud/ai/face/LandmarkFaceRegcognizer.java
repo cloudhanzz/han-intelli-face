@@ -7,6 +7,9 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import han.cloud.ai.face.ifs.FaceRecognizer;
 import han.cloud.ai.model.MatchInfo;
 import jep.Jep;
@@ -14,6 +17,7 @@ import jep.JepException;
 
 public class LandmarkFaceRegcognizer implements FaceRecognizer {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(LandmarkFaceRegcognizer.class);
 	private static Jep jep;
 	
 	static {
@@ -30,9 +34,11 @@ public class LandmarkFaceRegcognizer implements FaceRecognizer {
 			
 			jep.eval("sys.path.append(face_reck)");
 			jep.eval("import main");
+			
+			LOGGER.info("Created Jep {}", jep);
 
 		} catch (JepException e) {
-			e.printStackTrace();
+			LOGGER.error("Cannot create Jep", e);
 		}
 	}
 
