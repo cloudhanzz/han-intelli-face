@@ -114,7 +114,7 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 		}
 
 		private double[] divideByMaxPixel(BufferedImage image) {
-			double[] pixels = ImageTool.toPixels(image, FaceConstants.width, FaceConstants.height);
+			double[] pixels = ImageTool.toPixels(image, FaceConstants.FACE_WIDTH, FaceConstants.FACE_HEIGHT);
 			ArrayTool.divideByMax(pixels);
 			return pixels;
 		}

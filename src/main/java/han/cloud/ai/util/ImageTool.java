@@ -87,6 +87,10 @@ public class ImageTool {
 		int size = width * height;
 		return image.getData().getPixels(0, 0, width, height, new double[size]);
 	}
+	
+	public static double[] toPixels(BufferedImage image) {
+		return toPixels(image, image.getWidth(), image.getHeight());
+	}
 
 	public static BufferedImage createImageFromPixels(double[] pixels, int width) {
 
@@ -124,7 +128,7 @@ public class ImageTool {
 	}
 
 	public static BufferedImage grayAndResizeToFace(BufferedImage image) {
-		return grayAndResizeTo(image, FaceConstants.width, FaceConstants.height);
+		return grayAndResizeTo(image, FaceConstants.FACE_WIDTH, FaceConstants.FACE_HEIGHT);
 	}
 
 	/*

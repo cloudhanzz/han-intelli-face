@@ -8,9 +8,11 @@ package han.cloud.ai.util;
  */
 public final class FaceConstants {
 	
-	public static final int width = 125;
-	public static final int height = 150;
-	public static final int columns = width * height;
+	public static final int FACE_WIDTH = 125;
+	public static final int FACE_HEIGHT = 150;
+	public static final int FACE_LAYERS = 3;
+	
+	public static final int columns = FACE_WIDTH * FACE_HEIGHT;
 
 	private FaceConstants() {
 	}
