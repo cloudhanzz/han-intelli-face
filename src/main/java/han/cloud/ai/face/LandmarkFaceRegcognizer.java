@@ -62,8 +62,6 @@ public class LandmarkFaceRegcognizer implements FaceRecognizer {
 			}
 		}
 
-		LOGGER.info("Shortest distance: {}", minDistance);
-
 		return new MatchInfo(minDistance, index);
 	}
 

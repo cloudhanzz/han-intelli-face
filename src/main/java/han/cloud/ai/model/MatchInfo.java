@@ -13,7 +13,7 @@ public class MatchInfo {
 
 	public MatchInfo(double distance, int index) {
 		this.distance = distance;
-		this.index = index;
+		this.index = (0 == Double.compare(distance, Double.MAX_VALUE)) ? -1 : index;
 	}
 
 	public double getDistance() {

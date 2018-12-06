@@ -179,8 +179,6 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 
 	@Override
 	public MatchInfo recognize(List<BufferedImage> faces, BufferedImage face) {
-
-		Recognizer recogizer = new Recognizer(faces);
-		return recogizer.recognize(face);
+		return new Recognizer(faces).recognize(face);
 	}
 }
