@@ -8,7 +8,7 @@ import java.util.Arrays;
  * <p>
  * <b>Term</b>
  * <p>
- * CrossMean refers to the mean of the column of a 2D array.
+ * {@code CrossMean} refers to the mean of the column of a 2D array.
  * 
  * @author Jiayun Han
  *
@@ -22,13 +22,11 @@ public final class ArrayTool {
 	 * Divide each element of {@code array} by the array's max element value
 	 * 
 	 * @param array
-	 *            Assuming its max value is not zero.
+	 *            The array to perform the division operation on
 	 */
 	public static void divideByMax(double[] array) {
 		Arrays.stream(array).max().ifPresent(max -> {
-			for (int i = 0; i < array.length; i++) {
-				array[i] /= max;
-			}
+			divideBy(array, max);
 		});
 	}
 
@@ -37,29 +35,35 @@ public final class ArrayTool {
 	 * the squares of all of its elements.
 	 * 
 	 * @param array
-	 *            Assuming it is not empty and its norm value is not zero.
+	 *            The array to perform the division operation on
 	 */
 	public static void divideByNorm(double[] array) {
 		double norm = Arrays.stream(array).map(a -> a * a).sum();
-		for (int i = 0; i < array.length; i++) {
-			array[i] /= norm;
+		divideBy(array, norm);
+	}
+
+	private static void divideBy(double[] array, double denominator) {
+		if (Double.compare(0, denominator) != 0) {
+			for (int i = 0; i < array.length; i++) {
+				array[i] /= denominator;
+			}
 		}
 	}
 
 	/**
-	 * Returns the averages of the elements of all the arrays of the same indice
+	 * Returns the averages of the elements of all the arrays at the same indice
 	 * 
 	 * @param arrays
 	 *            A non-empty 2D double array, requiring all arrays have the same
 	 *            length
-	 * @return The averages of the elements of all the arrays of the same indice
+	 * @return The averages of the elements of all the arrays at the same indice
 	 */
 	public static double[] findCrossMeans(double[][] arrays) {
 
 		int rows = arrays.length;
 		int cols = arrays[0].length;
 
-		double[] means = new double[cols];
+		double[] columnMeans = new double[cols];
 
 		for (int col = 0; col < cols; col++) {
 			double sum = 0;
@@ -67,14 +71,14 @@ public final class ArrayTool {
 				sum += arrays[row][col];
 			}
 			double mean = sum / rows;
-			means[col] = mean;
+			columnMeans[col] = mean;
 		}
 
-		return means;
+		return columnMeans;
 	}
 
 	/**
-	 * Subtracts the each element of {@code arrays} by its corresponding cross mean
+	 * Subtracts from each element of {@code arrays} its corresponding cross mean
 	 * 
 	 * @param arrays
 	 *            A non-empty 2D double array, requiring all arrays have the same
@@ -94,6 +98,14 @@ public final class ArrayTool {
 		}
 	}
 
+	/**
+	 * Subtracts {@code means} from {@code array} element-wise
+	 * 
+	 * @param array
+	 *            The array to subtract from
+	 * @param means
+	 *            The array to subtract with
+	 */
 	public static void minusCrossMeans(double[] array, double[] means) {
 		for (int i = 0; i < array.length; i++) {
 			array[i] -= means[i];

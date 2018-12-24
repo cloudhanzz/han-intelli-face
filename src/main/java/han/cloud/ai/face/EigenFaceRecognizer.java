@@ -113,12 +113,18 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 			return faceMatrix.zMult(eigenspace.viewDice(), null);
 		}
 
+		// Divide each pixel of the image by the image's max pixel value
 		private double[] divideByMaxPixel(BufferedImage image) {
 			double[] pixels = ImageTool.toPixels(image, FaceConstants.FACE_WIDTH, FaceConstants.FACE_HEIGHT);
 			ArrayTool.divideByMax(pixels);
 			return pixels;
 		}
 
+		/**
+		 * 
+		 * @param refFaces Normalized training data pixels
+		 * @return The{@code EigenSpace] built out of the training image pixels
+		 */
 		private DoubleMatrix2D buildEigenspace(DoubleMatrix2D refFaces) {
 
 			List<Eigen> eigens = buildAndSortEigens(refFaces);
