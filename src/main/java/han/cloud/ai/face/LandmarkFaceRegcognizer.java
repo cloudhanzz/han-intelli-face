@@ -21,28 +21,10 @@ public class LandmarkFaceRegcognizer implements FaceRecognizer {
 	private static final String F_STATEMENT = "%s = main.compare_faces_by_image(%s, %s)";
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(LandmarkFaceRegcognizer.class);
-	private static Jep jep;
-
-	static {
-
-		try {
-
-			String pyHome = System.getenv("PYTHON_HOME");
-			String faceRecogDir = pyHome + "face_recognition";
-
-			jep = new Jep();
-
-			jep.eval("import sys");
-			jep.set("face_reck", faceRecogDir);
-
-			jep.eval("sys.path.append(face_reck)");
-			jep.eval("import main");
-
-			LOGGER.info("Created Jep {}", jep);
-
-		} catch (JepException e) {
-			LOGGER.error("Cannot create Jep", e);
-		}
+	private Jep jep;
+	
+	public LandmarkFaceRegcognizer(Jep jep) {
+		this.jep = jep;
 	}
 
 	@Override
