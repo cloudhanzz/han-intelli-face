@@ -1,8 +1,16 @@
 package han.cloud.ai.face;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
+
+import javax.imageio.ImageIO;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
@@ -44,6 +52,7 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 		private final int subMax;
 
 		private final double[] pixelMeans;
+		private final double[] eigenValues;
 
 		private final DoubleMatrix2D eigenspace;
 		private final DoubleMatrix2D refWeights;
@@ -67,12 +76,15 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 			ArrayTool.minusCrossMeans(refData, pixelMeans);
 
 			DenseDoubleMatrix2D refFaces = new DenseDoubleMatrix2D(refData);
+			KeyValuePair<DoubleMatrix2D, double[]> kv = buildEigenspaceAndEigenValues(refFaces);
 
-			this.eigenspace = buildEigenspace(refFaces);
+			this.eigenspace = kv.getKey();
+			this.eigenValues = kv.getValue();
+
 			this.refWeights = refFaces.zMult(eigenspace.viewDice(), null);
 		}
 
-		private MatchInfo recognize(BufferedImage face) {
+		private KeyValuePair<MatchInfo, double[]> recognize(BufferedImage face) {
 
 			double[] weights = projectFace(face).viewRow(0).toArray();
 
@@ -97,9 +109,9 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 			}
 
 			double distance = Math.sqrt(minSum);
-			MatchInfo result = new MatchInfo(distance, index);
+			MatchInfo matchInfo = new MatchInfo(distance, index);
 
-			return result;
+			return new KeyValuePair<MatchInfo, double[]>(matchInfo, weights);
 		}
 
 		private DoubleMatrix2D projectFace(BufferedImage face) {
@@ -122,10 +134,11 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 
 		/**
 		 * 
-		 * @param refFaces Normalized training data pixels
-		 * @return The{@code EigenSpace] built out of the training image pixels
+		 * @param refFaces
+		 *            Normalized training data pixels
+		 * @return The{@code EigenSpace as key and EigenValues as value] built out of the training image pixels
 		 */
-		private DoubleMatrix2D buildEigenspace(DoubleMatrix2D refFaces) {
+		private KeyValuePair<DoubleMatrix2D, double[]> buildEigenspaceAndEigenValues(DoubleMatrix2D refFaces) {
 
 			List<Eigen> eigens = buildAndSortEigens(refFaces);
 
@@ -141,7 +154,10 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 				eigenfaces.viewRow(i).assign(eigenface);
 			}
 
-			return eigenfaces.viewPart(0, 0, subMax, FaceConstants.columns);
+			DoubleMatrix2D eigenSpace = eigenfaces.viewPart(0, 0, subMax, FaceConstants.columns);
+			double[] eigenValues = kv.getValue();
+
+			return new KeyValuePair<DoubleMatrix2D, double[]>(eigenSpace, eigenValues);
 		}
 
 		private List<Eigen> buildAndSortEigens(DoubleMatrix2D refFaces) {
@@ -181,10 +197,94 @@ public class EigenFaceRecognizer implements FaceRecognizer {
 
 			return new KeyValuePair<DoubleMatrix2D, double[]>(vectors, values);
 		}
+
+		private void multiEigenValues(DoubleMatrix2D weights) {
+			transform(weights, eigenValues, (a, b) -> a * b);
+		}
+
+		private void addCrossMeans(DoubleMatrix2D reconstructedFaces) {
+			transform(reconstructedFaces, pixelMeans, (a, b) -> a + b);
+		}
+
+		private void transform(DoubleMatrix2D matrix, double[] horiValues, BiFunction<Double, Double, Double> f) {
+			for (int row = 0; row < matrix.rows(); row++) {
+				for (int column = 0; column < matrix.columns(); column++) {
+					double v1 = matrix.get(row, column);
+					double v2 = horiValues[column];
+
+					double value = f.apply(v1, v2);
+					matrix.setQuick(row, column, value);
+				}
+			}
+		}
+
+		private void saveMatrixAsImages(DoubleMatrix2D faces, String prefix) throws IOException {
+
+			String filenameFormat = "reconstructed_%d.png";
+			for (int row = 0; row < faces.rows(); row++) {
+				String filename = String.format(filenameFormat, row);
+				if(prefix != null) {
+					filename = prefix + "_" + filename;
+				}
+				double[] pixels = faces.viewRow(row).toArray();
+
+				BufferedImage image = ImageTool.createImageFromPixels(pixels, FaceConstants.FACE_WIDTH);
+				ImageIO.write(image, "png", new File(filename));
+			}
+
+		}
+	}
+
+	private final static Logger LOGGER = LoggerFactory.getLogger(EigenFaceRecognizer.class);
+
+	private final boolean doReconstrution;
+
+	/**
+	 * Constructs an instance of this class
+	 * 
+	 * @param doReconstrution
+	 *            True to require perform reconstruction of the faces from
+	 *            EigenFaces; false no such operation.
+	 */
+	public EigenFaceRecognizer(boolean doReconstrution) {
+		this.doReconstrution = doReconstrution;
 	}
 
 	@Override
 	public MatchInfo recognize(List<BufferedImage> faces, BufferedImage face) {
-		return new Recognizer(faces).recognize(face);
+		
+		Recognizer recognizer = new Recognizer(faces);
+		KeyValuePair<MatchInfo, double[]> kv = recognizer.recognize(face);
+		
+		MatchInfo matchInfo = kv.getKey();
+		double[] newFaceWeights = kv.getValue();
+
+		if (doReconstrution) {
+			try {
+				reconstruct(recognizer);
+				reconstruct(recognizer, newFaceWeights);
+			} catch (IOException e) {
+				LOGGER.error("Error occurred during face reconstruction.", e);
+			}
+		}
+		return matchInfo;
+	}
+
+	private void reconstruct(Recognizer recognizer) throws IOException {
+		reconstructHelper(recognizer, recognizer.refWeights.copy(), "training");
+	}
+	
+	private void reconstruct(Recognizer recognizer, double[] newFaceWeights) throws IOException {
+		DoubleMatrix2D weights = new DenseDoubleMatrix2D(new double[][] {newFaceWeights});
+		reconstructHelper(recognizer, weights, "testing");
+	}
+	
+	private void reconstructHelper(Recognizer recognizer, DoubleMatrix2D weights, String filenamePrefix) throws IOException {
+
+		recognizer.multiEigenValues(weights);
+		DoubleMatrix2D faces = weights.zMult(recognizer.eigenspace, null);
+
+		recognizer.addCrossMeans(faces);
+		recognizer.saveMatrixAsImages(faces, filenamePrefix);
 	}
 }
